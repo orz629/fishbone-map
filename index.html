@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>魚刺哪裡夾</title>
+<meta name="description" content="網友回報願意幫忙夾魚刺的耳鼻喉科診所地圖，可依目前位置找最近的診所。">
+<meta property="og:title" content="魚刺哪裡夾">
+<meta property="og:description" content="被魚刺卡到？找離你最近、願意幫忙夾魚刺的耳鼻喉科診所。">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<style>
+/* ===== 設定區：之後要改連結只改這裡 ===== */
+:root{
+  --bg:#f3f6f7; --surface:#ffffff; --ink:#14262e; --muted:#5a6b72; --line:#d8e1e4;
+  --sea:#0f5b6e; --sea-soft:#e2eff2; --ok:#1d7a52; --ok-soft:#e3f3ea;
+  --warn:#9a5b00; --warn-soft:#fbf0dc; --alert:#a8302a; --alert-soft:#fbe9e7;
+  --font:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0e171b; --surface:#16232a; --ink:#e6eef0; --muted:#9db0b6; --line:#2a3b42;
+  --sea:#6cc2d6; --sea-soft:#17323a; --ok:#6fd3a2; --ok-soft:#163327;
+  --warn:#f0b65a; --warn-soft:#33270f; --alert:#ff8a80; --alert-soft:#3a1c1a; color-scheme:dark}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.6}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px;display:flex;flex-direction:column;gap:24px}
+h1{font-size:2.1rem;font-weight:900;line-height:1.15;margin:0;letter-spacing:.02em}
+h1 svg{vertical-align:-4px;margin-right:6px}
+h2{font-size:1.25rem;font-weight:700;margin:0 0 10px}
+p{margin:0}
+a{color:var(--sea)}
+.lead{color:var(--muted);margin-top:6px}
+.urgent{background:var(--alert-soft);border-left:4px solid var(--alert);padding:14px 16px;border-radius:4px}
+.urgent strong{color:var(--alert)}
+.urgent ul{margin:6px 0 0;padding-left:1.2em}
+.locate{display:flex;flex-direction:column;gap:10px}
+.locate-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.locate-row select{flex:1;min-width:0}
+select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.status{font-size:.95rem;color:var(--muted)}
+#map{height:320px;border-radius:12px;border:1px solid var(--line);z-index:0}
+.list{display:flex;flex-direction:column;gap:14px;margin-top:14px}
+.clinic{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.clinic.stale{opacity:.6}
+.clinic.focus{outline:3px solid var(--sea)}
+.row{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.name{font-size:1.15rem;font-weight:700;min-width:0}
+.dist{color:var(--sea);font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.badges{display:flex;gap:6px;flex-wrap:wrap}
+.badge{font-size:.85rem;padding:2px 10px;border-radius:999px;font-weight:500}
+.b-ok{background:var(--ok-soft);color:var(--ok)}
+.b-user{background:var(--warn-soft);color:var(--warn)}
+.b-scope{background:var(--sea-soft);color:var(--sea)}
+.meta{color:var(--muted);font-size:.95rem}
+.phone{font-size:1.2rem;font-weight:700;font-variant-numeric:tabular-nums;text-decoration:none}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.btn{font:inherit;font-weight:700;border:0;border-radius:10px;padding:11px 16px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;min-height:46px}
+.btn-primary{background:var(--sea);color:var(--surface)}
+.btn-ghost{background:var(--sea-soft);color:var(--sea)}
+.btn:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--sea);outline-offset:2px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.empty{color:var(--muted);padding:18px;border:1px dashed var(--line);border-radius:12px;text-align:center}
+footer{color:var(--muted);font-size:.9rem;border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:6px}
+.leaflet-popup-content{font-family:var(--font);font-size:15px}
+.pin{width:18px;height:18px;border-radius:50%;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.pin.ok{background:#1d7a52}.pin.user{background:#c47a00}.pin.me{background:#2a6fdb}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><svg width="34" height="22" viewBox="0 0 34 22" aria-hidden="true"><path d="M2 11h26M8 11l-4-7M8 11l-4 7M14 11l-3-6M14 11l-3 6M20 11l-2-5M20 11l-2 5M28 11l4-5M28 11l4 5" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>魚刺哪裡夾</h1>
+    <p class="lead">網友回報「願意幫忙夾魚刺」的耳鼻喉科診所。出門前請先打電話，確認醫師在診。</p>
+  </header>
+
+  <section class="urgent" aria-label="就醫提醒">
+    <p><strong>有以下情況，請直接到醫院急診：</strong></p>
+    <ul>
+      <li>吞不下口水、一直流口水</li>
+      <li>呼吸喘、聲音沙啞、胸口痛</li>
+      <li>咳血或吐血</li>
+    </ul>
+    <p style="margin-top:8px">先停止進食。不要吞飯、喝醋或用手挖，可能把刺推得更深。</p>
+  </section>
+
+  <section aria-labelledby="h-list">
+    <h2 id="h-list">離你最近的診所</h2>
+    <div class="locate">
+      <div class="locate-row">
+        <button class="btn btn-primary" id="btn-locate" type="button">用我的位置</button>
+        <select id="county" aria-label="或選擇縣市"></select>
+      </div>
+      <p class="status" id="status">正在載入診所資料…</p>
+    </div>
+    <div id="map" style="margin-top:14px" role="region" aria-label="診所地圖"></div>
+    <div id="list" class="list"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-report">
+    <h2 id="h-report">知道哪家願意幫忙嗎？</h2>
+    <p>只收「有協助處理」的經驗，審核後才會上架，不會公開你的個人資料。</p>
+    <div class="actions"><a class="btn btn-primary" id="link-report" target="_blank" rel="noopener">回報一家診所</a></div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-clinic">
+    <h2 id="h-clinic">診所醫師請看這裡</h2>
+    <p>願意協助的診所可以申請認證，我們以健保署資料核對醫事機構代碼，並撥打診所公開登記的電話確認，通過後會顯示「診所已認證」。被列出但不希望公開，也可以申請更正或下架。</p>
+    <div class="actions"><a class="btn btn-ghost" id="link-clinic" target="_blank" rel="noopener">申請認證／更正／下架</a></div>
+  </section>
+
+  <footer>
+    <p>本頁資料由網友回報，僅供參考，不代表診所當日一定能處理。卡在食道或較深處的魚刺，診所可能需要轉診到醫院。</p>
+    <p>地圖資料 © OpenStreetMap 貢獻者</p>
+  </footer>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+// ===== 設定區 =====
+const CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQwWKwubi294vFLuTZI5i4Ps7B-rvb5Lnd1X6aUvbdzFpP0gNnt-MrELhFA-AKljTrP6YbAQJoFKk3u/pub?gid=839356757&single=true&output=csv";
+const FORM_URL = "https://forms.gle/MFzZADRqqrm6vUeA8";   // Google 表單分享連結
+// ===================
+
+const COUNTIES = {
+  "基隆市":[25.128,121.742],"臺北市":[25.038,121.564],"新北市":[25.012,121.465],"桃園市":[24.993,121.301],
+  "新竹市":[24.804,120.971],"新竹縣":[24.839,121.018],"苗栗縣":[24.560,120.821],"臺中市":[24.147,120.674],
+  "彰化縣":[24.081,120.538],"南投縣":[23.910,120.684],"雲林縣":[23.709,120.431],"嘉義市":[23.480,120.449],
+  "嘉義縣":[23.459,120.293],"臺南市":[22.999,120.227],"高雄市":[22.627,120.301],"屏東縣":[22.669,120.488],
+  "宜蘭縣":[24.757,121.753],"花蓮縣":[23.991,121.601],"臺東縣":[22.756,121.144],"澎湖縣":[23.571,119.579],
+  "金門縣":[24.432,118.318],"連江縣":[26.160,119.951]
+};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const yes = v => /^(是|y|yes|true|1|v|✓)$/i.test(String(v||"").trim());
+
+let clinics = [], here = null, map, meMarker, markers = {};
+
+// 表單連結
+const formOk = FORM_URL && FORM_URL.startsWith("http");
+["#link-report","#link-clinic"].forEach(id=>{
+  const a=$(id); if(formOk) a.href=FORM_URL; else { a.removeAttribute("href"); a.textContent+="（表單準備中）"; }
+});
+
+// 縣市選單
+$("#county").innerHTML = '<option value="">或選擇縣市</option>' + Object.keys(COUNTIES).map(c=>`<option>${c}</option>`).join("");
+
+// 地圖
+map = L.map("map",{scrollWheelZoom:false}).setView([23.7,120.95],7);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(map);
+const pin = cls => L.divIcon({className:"",html:`<div class="pin ${cls}"></div>`,iconSize:[18,18],iconAnchor:[9,9]});
+
+function km(a,b){
+  const R=6371,t=x=>x*Math.PI/180,dLat=t(b[0]-a[0]),dLng=t(b[1]-a[1]);
+  const h=Math.sin(dLat/2)**2+Math.cos(t(a[0]))*Math.cos(t(b[0]))*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+const stale = d => { const t=Date.parse(String(d||"").replace(/\//g,"-")); return t && (Date.now()-t)>365*864e5; };
+
+function setHere(latlng, label){
+  here = latlng;
+  if(meMarker) meMarker.remove();
+  meMarker = L.marker(latlng,{icon:pin("me"),title:"你的位置"}).addTo(map).bindPopup(label);
+  render();
+  const near = clinics.slice(0,3).map(c=>[c.lat,c.lng]);
+  map.fitBounds(L.latLngBounds([latlng,...near]).pad(0.25),{maxZoom:14});
+}
+
+function render(){
+  if(here) clinics.forEach(c=>c.d=km(here,[c.lat,c.lng]));
+  const items = here ? [...clinics].sort((a,b)=>a.d-b.d) : clinics;
+  const list=$("#list");
+  if(!items.length){
+    list.innerHTML = `<div class="empty">目前還沒有上架的診所。${formOk?`<br><a href="${esc(FORM_URL)}" target="_blank" rel="noopener">回報第一家診所</a>`:""}</div>`;
+    return;
+  }
+  list.innerHTML = items.map(c=>{
+    const nav = "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(c.name+" "+c.address);
+    const s = stale(c.last);
+    return `<article class="clinic${s?" stale":""}" id="c-${c.key}">
+      <div class="row"><span class="name">${esc(c.name)}</span>${here?`<span class="dist">${c.d<1?"<1":Math.round(c.d)} 公里</span>`:""}</div>
+      <div class="badges">
+        ${c.verified?'<span class="badge b-ok">診所已認證</span>':""}
+        ${c.reports?`<span class="badge b-user">網友回報 ${c.reports} 次</span>`:""}
+        ${c.scope?'<span class="badge b-scope">有喉頭內視鏡</span>':""}
+      </div>
+      <p class="meta">${esc(c.address)}${c.hours?"<br>"+esc(c.hours):""}${c.last?`<br>最近回報：${esc(c.last)}${s?"（超過一年，資訊可能已變）":""}`:""}${c.note?"<br>"+esc(c.note):""}</p>
+      ${c.phone?`<a class="phone" href="tel:${esc(c.phone.replace(/[^0-9+]/g,""))}">📞 ${esc(c.phone)}</a>`:""}
+      <div class="actions">
+        <a class="btn btn-primary" href="${nav}" target="_blank" rel="noopener">Google 地圖導航</a>
+        ${formOk?`<a class="btn btn-ghost" href="${esc(FORM_URL)}" target="_blank" rel="noopener">我也去過</a>`:""}
+      </div>
+    </article>`;
+  }).join("");
+}
+
+function drawMarkers(){
+  clinics.forEach(c=>{
+    markers[c.key] = L.marker([c.lat,c.lng],{icon:pin(c.verified?"ok":"user"),title:c.name})
+      .addTo(map)
+      .bindPopup(`<strong>${esc(c.name)}</strong><br>${esc(c.phone||"")}`)
+      .on("click",()=>{
+        const el=document.getElementById("c-"+c.key); if(!el) return;
+        document.querySelectorAll(".clinic.focus").forEach(x=>x.classList.remove("focus"));
+        el.classList.add("focus");
+        el.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"center"});
+      });
+  });
+}
+
+// 載入資料
+Papa.parse(CSV_URL + "&t=" + Date.now(), {
+  download:true, header:true, skipEmptyLines:true,
+  complete: res=>{
+    clinics = res.data.map((r,i)=>{
+      const g = k => (r[k] ?? "").toString().trim();
+      return {
+        key:i, code:g("醫事機構代碼"), name:g("診所名稱"), county:g("縣市"), address:g("地址"), phone:g("電話"),
+        lat:parseFloat(g("緯度")), lng:parseFloat(g("經度")), hours:g("看診時段"),
+        reports:parseInt(g("網友回報次數"))||0, last:g("最近回報日期"),
+        verified:yes(g("已認證")), scope:yes(g("有內視鏡")), note:g("備註"), listed:yes(g("上架"))
+      };
+    }).filter(c=>c.listed && c.name && isFinite(c.lat) && isFinite(c.lng));
+    $("#status").textContent = clinics.length ? `共 ${clinics.length} 家診所。按「用我的位置」或選縣市，依距離排序。` : "目前還沒有上架的診所。";
+    drawMarkers(); render();
+    if(clinics.length) map.fitBounds(L.latLngBounds(clinics.map(c=>[c.lat,c.lng])).pad(0.2),{maxZoom:12});
+  },
+  error: ()=>{ $("#status").textContent="診所資料載入失敗，請檢查網路後重新整理。"; }
+});
+
+// 定位
+$("#btn-locate").addEventListener("click",()=>{
+  if(!navigator.geolocation){ $("#status").textContent="這個瀏覽器不支援定位，請改選縣市。"; return; }
+  $("#status").textContent="正在取得你的位置…";
+  navigator.geolocation.getCurrentPosition(
+    p=>{ setHere([p.coords.latitude,p.coords.longitude],"你的位置"); $("#status").textContent="已依你的位置排序。"; },
+    ()=>{ $("#status").textContent="無法取得位置。請在瀏覽器允許定位，或改選縣市。"; },
+    {enableHighAccuracy:true,timeout:10000,maximumAge:60000}
+  );
+});
+$("#county").addEventListener("change",e=>{
+  const c=e.target.value; if(!c) return;
+  setHere(COUNTIES[c], c+"中心"); $("#status").textContent=`已依${c}中心排序，實際距離以你的位置為準。`;
+});
+</script>
+</body>
+</html>
